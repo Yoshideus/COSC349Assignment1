@@ -25,6 +25,8 @@
 
       <?php
 
+      echo "<tr><td>TEST1</td><td>TEST2</td></tr>\n";
+
       $db_host   = '127.0.0.1';
       $db_name   = 'fvision';
       $db_user   = 'webuser';
@@ -35,6 +37,8 @@
       $pdo = new PDO($pdo_dsn, $db_user, $db_passwd);
 
       $q = $pdo->query("SELECT * FROM games");
+
+      echo "<p>test3</p>";
 
       while($row = $q->fetch()){
         echo "<tr><td>".$row["gameid"]."</td><td>".$row["maxPlayers"]."</td></tr>\n";

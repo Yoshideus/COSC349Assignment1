@@ -77,7 +77,7 @@ Vagrant.configure("2") do |config|
     echo "GRANT ALL PRIVILEGES ON fvision.* TO 'webuser'@'%'" | mysql
 
     export MYSQL_PWD='insecure_db_pw'
-    cat /vagrant/setup-database.sql | mysql -u webuser fvision
+    cat /vagrant/database.sql | mysql -u webuser fvision
 
     cp /vagrant/website.conf /etc/apache2/sites-available/
 
