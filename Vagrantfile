@@ -65,11 +65,11 @@ Vagrant.configure("2") do |config|
   # documentation for more information about their specific syntax and use.
   config.vm.provision "shell", inline: <<-SHELL
     apt-get update
-    apt-get install -y apache2
+    apt-get install -y apache2 php libapache2-mod-php
 
-    cp /vagrant/test-website.conf /etc/apache2/sites-available/
+    cp /vagrant/website.conf /etc/apache2/sites-available/
 
-    a2ensite test-website
+    a2ensite website
     a2dissite 000-default
     service apache2 reload
   SHELL
