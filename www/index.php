@@ -12,6 +12,14 @@
     th, td {
       padding: 0.2em;
     }
+
+    body {
+      position: relative;
+    }
+
+    .container {
+      text-align: center;
+    }
     </style>
   </head>
 
@@ -27,7 +35,7 @@
 
       echo "<tr><td>TEST1</td><td>TEST2</td></tr>\n";
 
-      $db_host   = '127.0.0.1';
+      $db_host   = '192.168.2.12';
       $db_name   = 'fvision';
       $db_user   = 'webuser';
       $db_passwd = 'insecure_db_pw';
@@ -46,5 +54,26 @@
 
       ?>
     </table>
+
+    <div class="container">
+        <h1 class="title">Complete the Sentence Game</h1>
+        <br>
+        <h3>Lets play the Complete the Sentence Game!</h3>
+        <br>
+        <p class="rules">
+           On each players turn they will be able to type
+           one word that will then be added to the sentence.
+           The aim of the game is to make the most fun sentence
+           you can. When a player thinks a sentence is done,
+           they can enter a . to complete it and the game will
+           continue with another sentence.
+         </p>
+        <br>
+        <button>Find Game!</button>
+        <br>
+        <label for="nextWord">Input the next word</label>
+        <br>
+        <input type="text" id="nextWord" name="nextWord">
+    </div>
   </body>
 </html>

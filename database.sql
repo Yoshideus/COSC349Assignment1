@@ -12,7 +12,7 @@ CREATE TABLE sentences (
   FOREIGN KEY (gameid) REFERENCES games(gameid)
 );
 
-INSERT INTO games VALUES (3);
-INSERT INTO games VALUES (5);
-INSERT INTO games VALUES (5);
-INSERT INTO games VALUES (5);
+INSERT INTO games (maxPlayers) VALUES (3);
+INSERT INTO games (maxPlayers) VALUES (5);
+INSERT INTO games (maxPlayers) VALUES (5);
+INSERT INTO games (maxPlayers) VALUES (5);
