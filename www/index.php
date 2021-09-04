@@ -34,8 +34,18 @@ $_SESSION['username'] = null;
 
     <!-- opening php -->
     <?php
+
+    $db_host   = '192.168.2.12';
+    $db_name   = 'fvision';
+    $db_user   = 'webuser';
+    $db_passwd = 'insecure_db_pw';
+
+    $pdo_dsn = "mysql:host=$db_host;dbname=$db_name";
+
+    $pdo = new PDO($pdo_dsn, $db_user, $db_passwd);
+
     // setting row as empty for failed logins
-    $row[]= null;
+    $row = null;
 
     // if the login button pressed
       if(isset($_POST['login'])){
@@ -46,21 +56,12 @@ $_SESSION['username'] = null;
         // setting success to false for username and password checking
         $success = false;
 
-        // open accounts csv file
-        $file = new SplFileObject("csv/accounts.csv");
-        $file->setFlags(SplFileObject::READ_CSV|SplFileObject::SKIP_EMPTY|SplFileObject::READ_AHEAD);
+        $q = $pdo->query("SELECT * FROM users");
 
-        // setting row as an array
-        $row = [];
-
-        // while loop to check username and password from csv
-        while(!$file->eof()){
-          // puts row of csv in row
-          $row = $file->fgetcsv();
-          // checks if this the user exists in csv
-          if ($row[0] == $username) {
+        while($row = $q->fetch()){
+          if (strcmp($row["username"], $username) == 0) {
             // if user exists, check password
-            if (password_verify($password, $row[1]) == true) {
+            if (password_verify($password, $row["password"]) == true) {
               // if password is correct login success
               $success = true;
               // get out if found
@@ -111,60 +112,40 @@ $_SESSION['username'] = null;
         //hashing password with default hash for security
         $Rpassword1 = password_hash($Rpassword1, PASSWORD_DEFAULT);
 
-        // open accounts csv file
-        $file = new SplFileObject("csv/accounts.csv", "r+");
-        $file->setFlags(SplFileObject::READ_CSV|SplFileObject::SKIP_EMPTY|SplFileObject::READ_AHEAD);
+        $q = $pdo->query("SELECT * FROM users");
 
-        // set row
-        $row = [];
-
-        // set line
-        $line = [];
-
-        // while loop to check username from csv
-        while(!$file->eof()){
+        while($row = $q->fetch()){
           // puts row of csv in row
           $row = $file->fgetcsv();
           // checks if this the user exists in csv
-          if ($row[0] == $Rusername) {
+          if ($row["username"] == $Rusername) {
             // if so, error
              $error = "true";
              // get out if found
              break;
             }
-          }
+        }
 
         // if error is false
         if ($error == "false") {
 
-            // putting username and password in line array
-            $line[0] = $Rusername;
-            $line[1] = $Rpassword1;
+          try {
+            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-            // putting line array in csv file
-            $file->fputcsv($line);
+            $pdo->exec("INSERT INTO users (username, password) VALUES ($Rusername, Rpassword1)");
 
-            // closing file
-            $file = null;
+            $pdo->exec("INSERT INTO stats (username, gamesplayed,wins,draws,loses,score, winrate) VALUES ($Rusername, 0, 0, 0, 0, 0, 0)");
+          } catch(PDOException $e) {
+            ?>
+            <script>
+            // alert for popup
+            alert("Sorry, something went wrong, please try again.");
+            </script>
+            <?php
+          }
 
             // setting session username variable
             $_SESSION['username'] = $Rusername;
-
-            // open stats csv file
-            $file = new SplFileObject("csv/stats.csv", "a+");
-            $file->setFlags(SplFileObject::READ_CSV|SplFileObject::SKIP_EMPTY|SplFileObject::READ_AHEAD);
-
-            // set values for line
-            $line[0] = $_SESSION['username'];
-            $line[1] = 0;
-            $line[2] = 0;
-            $line[3] = 0;
-            $line[4] = 0;
-            $line[5] = 0;
-            $line[6] = 0;
-
-            // put line into file
-            $file->fputcsv($line);
 
             // change to menu
             header("Location: menu.php"); /* Redirect browser */
