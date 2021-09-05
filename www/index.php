@@ -1,9 +1,20 @@
 <?php
 
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 // starting session for session variables
 session_start();
 // Set the username to null, completly login anyone out if they return to the index page
 $_SESSION['username'] = null;
+
+$db_host   = '192.168.2.12';
+$db_name   = 'fvision';
+$db_user   = 'webuser';
+$db_passwd = 'insecure_db_pw';
+
+$conn = new mysqli($db_host, $db_user , $db_passwd, $db_name);
 
  ?>
 <!DOCTYPE html>
@@ -35,15 +46,6 @@ $_SESSION['username'] = null;
     <!-- opening php -->
     <?php
 
-    $db_host   = '192.168.2.12';
-    $db_name   = 'fvision';
-    $db_user   = 'webuser';
-    $db_passwd = 'insecure_db_pw';
-
-    $pdo_dsn = "mysql:host=$db_host;dbname=$db_name";
-
-    $pdo = new PDO($pdo_dsn, $db_user, $db_passwd);
-
     // setting row as empty for failed logins
     $row = null;
 
@@ -56,9 +58,11 @@ $_SESSION['username'] = null;
         // setting success to false for username and password checking
         $success = false;
 
-        $q = $pdo->query("SELECT * FROM users");
+        $q = "SELECT * FROM users";
 
-        while($row = $q->fetch()){
+        $data = $conn->query($q);
+
+        while($row = $data->fetch_assoc()){
           if (strcmp($row["username"], $username) == 0) {
             // if user exists, check password
             if (password_verify($password, $row["password"]) == true) {
@@ -74,6 +78,8 @@ $_SESSION['username'] = null;
         if ($success == true) {
             // Set session username variable
             $_SESSION['username'] = $username;
+
+            $conn->close();
 
             // change to menu
             header("Location: menu.php"); /* Redirect browser */
@@ -112,11 +118,11 @@ $_SESSION['username'] = null;
         //hashing password with default hash for security
         $Rpassword1 = password_hash($Rpassword1, PASSWORD_DEFAULT);
 
-        $q = $pdo->query("SELECT * FROM users");
+        $q = "SELECT * FROM users";
 
-        while($row = $q->fetch()){
-          // puts row of csv in row
-          $row = $file->fgetcsv();
+        $data = $conn->query($q);
+
+        while($row = $data->fetch_assoc()){
           // checks if this the user exists in csv
           if ($row["username"] == $Rusername) {
             // if so, error
@@ -129,28 +135,39 @@ $_SESSION['username'] = null;
         // if error is false
         if ($error == "false") {
 
-          try {
-            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $q = 'INSERT INTO users (username, password) VALUES (?, ?)';
 
-            $pdo->exec("INSERT INTO users (username, password) VALUES ($Rusername, Rpassword1)");
+            $enter = $conn->prepare($q);
 
-            $pdo->exec("INSERT INTO stats (username, gamesplayed,wins,draws,loses,score, winrate) VALUES ($Rusername, 0, 0, 0, 0, 0, 0)");
-          } catch(PDOException $e) {
-            ?>
-            <script>
-            // alert for popup
-            alert("Sorry, something went wrong, please try again.");
-            </script>
-            <?php
-          }
+            $enter->bind_param("ss", $Rusername, $Rpassword1);
+
+            if ($enter->execute() === TRUE) {
+              echo "New record created successfully 1";
+            } else {
+              echo "Error: " . $q . "<br>" . $conn->error . "<br>";
+            }
+
+            $q = 'INSERT INTO stats (username, gamesplayed,wins,draws,loses,score, winrate) VALUES (?, 0, 0, 0, 0, 0, 0)';
+
+            $enter = $conn->prepare($q);
+
+            $enter->bind_param("s", $Rusername);
+
+            if ($enter->execute() === TRUE) {
+              echo "New record created successfully 2";
+            } else {
+              echo "Error: " . $q . "<br>" . $conn->error . "<br>";
+            }
 
             // setting session username variable
             $_SESSION['username'] = $Rusername;
 
+            $conn->close();
+
             // change to menu
-            header("Location: menu.php"); /* Redirect browser */
+            //header("Location: menu.php"); /* Redirect browser */
             // exit page
-            exit;
+            //exit;
         }
         else {
           // popup to tell user they failed
@@ -220,5 +237,5 @@ $_SESSION['username'] = null;
           </form>
       </div>
     </div>
-    </body>
-    </html>
+  </body>
+</html>

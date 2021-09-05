@@ -11,7 +11,6 @@ Vagrant.configure("2") do |config|
     webserver.vm.hostname = "webserver"
     webserver.vm.network "forwarded_port", guest: 80, host: 8080, host_ip: "127.0.0.1"
     webserver.vm.network "private_network", ip: "192.168.2.11"
-    webserver.vm.synced_folder ".", "/vagrant", owner: "vagrant", group: "vagrant", mount_options: ["dmode=775,fmode=777"]
 
     webserver.vm.provision "shell", inline: <<-SHELL
       apt-get update
@@ -22,14 +21,12 @@ Vagrant.configure("2") do |config|
       a2ensite website
       a2dissite 000-default
       service apache2 reload
-
     SHELL
   end
 
   config.vm.define "dbserver" do |dbserver|
     dbserver.vm.hostname = "dbserver"
     dbserver.vm.network "private_network", ip: "192.168.2.12"
-    dbserver.vm.synced_folder ".", "/vagrant", owner: "vagrant", group: "vagrant", mount_options: ["dmode=775,fmode=777"]
 
     dbserver.vm.provision "shell", inline: <<-SHELL
 
@@ -48,26 +45,6 @@ Vagrant.configure("2") do |config|
 
       sed -i'' -e '/bind-address/s/127.0.0.1/0.0.0.0/' /etc/mysql/mysql.conf.d/mysqld.cnf
       service mysql restart
-
-    SHELL
-  end
-
-  config.vm.define "reportserver" do |reportserver|
-    reportserver.vm.hostname = "reportserver"
-    reportserver.vm.network "private_network", ip: "192.168.2.13"
-
-    reportserver.vm.provision "shell", inline: <<-SHELL
-
-      apt-get update
-
-      apt-get install -y apache2 php libapache2-mod-php php-mysql
-
-      cp /vagrant/website.conf /etc/apache2/sites-available/
-
-      a2ensite website
-      a2dissite 000-default
-      service apache2 reload
-
     SHELL
   end
 end
