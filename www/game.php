@@ -1,5 +1,7 @@
 <?php
-
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 // starting session for session variables
 session_start();
 
@@ -9,10 +11,17 @@ if(!isset($_SESSION['username'])){
   exit;
 }
 // if the row variable that decides the game isn't set, go back to select game page
-if(!isset($_GET['row'])){
+if(!isset($_GET['id'])){
   header("Location: selectgame.php"); /* Redirect browser */
   exit;
 }
+
+$db_host   = '192.168.2.12';
+$db_name   = 'fvision';
+$db_user   = 'webuser';
+$db_passwd = 'insecure_db_pw';
+
+$conn = new mysqli($db_host, $db_user , $db_passwd, $db_name);
 
 ?>
 <!DOCTYPE html>
@@ -44,51 +53,46 @@ if(!isset($_GET['row'])){
     <!-- opening php -->
     <?php
 
-    // getting current row from last page
-    $currentrow = $_GET['row'];
+    //getting current row from last page
+    $id = $_GET['id'];
 
-    // open games csv file
-    $file = new SplFileObject("csv/games.csv", "r+");
-    $file->setFlags(SplFileObject::READ_CSV|SplFileObject::SKIP_EMPTY|SplFileObject::READ_AHEAD);
+    $q = "SELECT * FROM games WHERE gameid=?";
 
-    // set row
-    $row = [];
+    $enter = $conn->prepare($q);
 
-    // set game array
-    $game = [];
+    $enter->bind_param("s", $id);
 
-    // setting counting variables
-    $i = 0;
-    $l = 4;
+    if ($enter->execute() === TRUE) {
+      echo "success";
+    } else {
+      echo "Error: " . $q . "<br>" . $conn->error . "<br>";
+    }
 
-    // reading to the end of the file
-    while(!$file->eof()){
-      // reading each row into row variable
-      $row = $file->fgetcsv();
-      // finding the gam wanted
-      if ($i == $currentrow){
-        // setting array for game details
-        $user = $row;
-        // creating 2d array for gameboard from csv file by counting through row then column
-        for ($j=0; $j < 3; $j++) {
-          for ($k=0; $k < 3; $k++) {
-            $game[$j][$k] = $row[$l];
-            $l++;
-          }
-        }
-      }
-      // if not game, put them all in a records array for reading in later
-      else {
-        $records[$i] = $row;
-      }
-      //counting up variable
-      $i++;
-      }
+    $result = $enter->get_result();
+
+    $row = $result->fetch_assoc();
+
+    if($row['whoseturn'] != $_SESSION['username']){
+      header("Location: selectgame.php"); /* Redirect browser */
+      exit;
+    }
+
+    echo $row['p1']."<br></br>";
+
+    $l = 5;
+    $game = array (
+      array($row['p1'],$row['p2'],$row['p3']),
+      array($row['p4'],$row['p5'],$row['p6']),
+      array($row['p7'],$row['p8'],$row['p9']),
+    );
 
       // setting player 1, player 2, and turn number for game
-      $player1 = $user[0];
-      $player2 = $user[1];
-      $turnno = $user[2];
+      $player1 = $row["user1"];
+      $player2 = $row["user2"];
+      $turnno = $row["turnnum"];
+
+      echo $player1;
+      echo $player2;
 
       // setting token and opponent by user
       // if user is player 1
@@ -112,23 +116,14 @@ if(!isset($_GET['row'])){
         $place = $_POST['place'];
 
         // set row by function of place variable
-        $row = intval($place/3);
+        $line = intval($place/3);
         // set column but function of place variable
         $column = fmod($place, 3);
 
+        $newturnnum = $turnno+1;
+
         // set the position selected to th token of the current player
-        $game[$row][$column] = $token;
-
-            // increase turn number by 1
-            $user[2]++;
-
-            // swapping whos turn it is by checking current player and setting game array to other player
-            if($_SESSION['username'] == $player1) {
-              $user[3] = $player2;
-            }
-            else{
-              $user[3] = $player1;
-            }
+        $game[$line][$column] = $token;
 
             // setting win and endgame variables
             $win = "false";
@@ -184,167 +179,114 @@ if(!isset($_GET['row'])){
                 }
               }
               // if the board has been filled with no wins, end game with no win
-              if($user[2] == 9){
+              if($newturnnum == 9){
                 $endgame = "true";
               }
 
-            // closing file
-            $file = null;
-
-            // opening games csv file with w+ to truncate it and write it back into file
-            $file = new SplFileObject("csv/games.csv", "w+");
-            $file->setFlags(SplFileObject::READ_CSV|SplFileObject::SKIP_EMPTY|SplFileObject::READ_AHEAD);
-
-            // setting counting variable back to 0
-            $i = 0;
-
-            // set line
-            $line = [];
-
-            // if endgame is true, get rid of last array as when left it counts too far and leaves an empty array
-            if($endgame == "true"){
-              array_pop($records);
-            }
-
-            // setting games file back into csv file in same places edited
-            // run through get row in records array
-            foreach ($records as $row) {
-              // if game over, skip over the the line of game to move everything up so an empty line isnt left in the file once game is over
-              if ($endgame == "true" && $i == $currentrow) {
-                $i++;
-              }
-              // set line to records row
-              $line = $records[$i];
-              // if game isnt over, read game line into file
-              if ($i == $currentrow && $endgame !== "true") {
-                $line = null;
-                // set game details into file
-                for($j = 0; $j < 4; $j++){
-                  $line[$j] = $user[$j];
-                }
-                // set game board into file
-                for ($k=0; $k < 3; $k++) {
-                  for ($l=0; $l < 3; $l++) {
-                    $line[$j] = $game[$k][$l];
-                    // count up
-                    $j++;
-                  }
-                }
-              }
-              // is line is set
-              if ($line[0] !== '') {
-                // read line into file
-                $file->fputcsv($line);
-                // count up
-                $i++;
-              }
-              // empty line
-              $line = null;
-            }
-
-            // close file
-            $file = null;
-
             // if game over
             if($endgame == "true") {
-              // open stats csv file
-              $file = new SplFileObject("csv/stats.csv", "r+");
-              $file->setFlags(SplFileObject::READ_CSV|SplFileObject::SKIP_EMPTY|SplFileObject::READ_AHEAD);
+              $q = "SELECT * FROM stats WHERE username=?";
 
-              // set row
-              $row = [];
+              $enter = $conn->prepare($q);
 
-              // set counting variable back to 0
-              $i = 0;
+              $enter->bind_param("s", $_SESSION['username']);
 
-              // reading to the end of the file
-              while(!$file->eof()){
-                // reading each row into row variable
-                $row = $file->fgetcsv();
-                // setting all stats into array
-                $stats[$i] = $row;
-                // counting up
-                $i++;
-                }
-
-                // set counting avriable back to 0
-                $i = 0;
-
-                // algorithm for updating stats of both players after game
-                // loop through stats to find both user and opponent
-                foreach($stats as $row) {
-                  // find user line
-                  if ($stats[$i][0] == $_SESSION['username']) {
-                    // update number of games
-                    $stats[$i][1] = $stats[$i][1] + 1;
-                    // if they won
-                    if($win == "true") {
-                      // plus 1 to wins
-                      $stats[$i][2] = $stats[$i][2] + 1;
-                    }
-                    // if draw
-                    else {
-                      // plus 1 to draw
-                      $stats[$i][3] = $stats[$i][3] + 1;
-                    }
-                    // work out score for 3 points for a win and 1`point for a draw
-                    $stats[$i][5] = 3*$stats[$i][2] + $stats[$i][3];
-                    // work out winrate by number of wins divided by number of games
-                    $stats[$i][6] = $stats[$i][2]/$stats[$i][1];
-                  }
-                  // find opponent line
-                  elseif($stats[$i][0] == $_SESSION['opponent']) {
-                    // updaye number of games
-                    $stats[$i][1] = $stats[$i][1] + 1;
-                    // if user won
-                    if($win == "true") {
-                      // plus 1 to opponents loses
-                      $stats[$i][4] = $stats[$i][4] + 1;
-                    }
-                    // if draw
-                    else {
-                      // plus 1 to draw
-                      $stats[$i][3] = $stats[$i][3] + 1;
-                    }
-                    // work out score for 3 points for a win and 1`point for a draw
-                    $stats[$i][5] = 3*$stats[$i][2] + $stats[$i][3];
-                    // work out winrate by number of wins divided by number of games
-                    $stats[$i][6] = $stats[$i][2]/$stats[$i][1];
-                  }
-                  // counting up
-                  $i++;
-                }
-
-                // close file
-                $file = null;
-
-                // opening stats csv file with w+ to truncate it and write it back into file
-                $file = new SplFileObject("csv/stats.csv", "w+");
-                $file->setFlags(SplFileObject::READ_CSV|SplFileObject::SKIP_EMPTY|SplFileObject::READ_AHEAD);
-
-                // set counting avribale back to 0
-                $i = 0;
-
-                // get rid of empty line
-                array_pop($stats);
-
-                // reading rows back into csv file
-                foreach ($stats as $row) {
-                  for($j = 0; $j < 7; $j++) {
-                    // set line
-                    $line[$j] = $stats[$i][$j];
-                  }
-                  // put line into file
-                  $file->fputcsv($line);
-                  // counting up
-                  $i++;
-                  // reset line
-                  $line = null;
-                }
+              if ($enter->execute() === TRUE) {
+                echo "success";
+              } else {
+                echo "Error: " . $q . "<br>" . $conn->error . "<br>";
               }
 
-              // if game over
-              if($endgame == "true") {
+              $result = $enter->get_result();
+
+              $row = $result->fetch_assoc();
+
+              $newGamesPlayed = $row['gamesplayed']+1;
+              if($win == "true") {
+                // plus 1 to wins
+                $newWins = $row['wins']+1;
+                $newDraws = $row['draws'];
+              }
+              // if draw
+              else {
+                // plus 1 to draw
+                $newWins = $row['wins'];
+                $newDraws = $row['draws']+1;
+              }
+                // work out score for 3 points for a win and 1`point for a draw
+                $newScore = 3*$newWins + $newDraws;
+                // work out winrate by number of wins divided by number of games
+                $newWinrate = $newWins/$newGamesPlayed;
+
+              $q = 'UPDATE stats SET gamesplayed=?, wins=?, draws=?, score=?, winrate=? WHERE username = ?';
+
+              $enter = $conn->prepare($q);
+
+              $enter->bind_param("iiiids", $newGamesPlayed, $newWins, $newDraws, $newScore, $newWinrate, $_SESSION['username']);
+
+              if ($enter->execute() === TRUE) {
+                echo "New record created successfully 2";
+              } else {
+                echo "Error: " . $q . "<br>" . $conn->error . "<br>";
+              }
+
+              $q = "SELECT * FROM stats WHERE username=?";
+
+              $enter = $conn->prepare($q);
+
+              $enter->bind_param("s", $_SESSION['opponent']);
+
+              if ($enter->execute() === TRUE) {
+                echo "success";
+              } else {
+                echo "Error: " . $q . "<br>" . $conn->error . "<br>";
+              }
+
+              $result = $enter->get_result();
+
+              $row = $result->fetch_assoc();
+
+              $newGamesPlayed = $row['gamesplayed']+1;
+              if($win == "true") {
+                // plus 1 to wins
+                $newLoses = $row['loses']+1;
+                $newDraws = $row['draws'];
+              }
+              // if draw
+              else {
+                // plus 1 to draw
+                $newWins = $row['wins'];
+                $newDraws = $row['draws']+1;
+              }
+                // work out score for 3 points for a win and 1`point for a draw
+                $newScore = 3*$newWins + $newDraws;
+                // work out winrate by number of wins divided by number of games
+                $newWinrate = $newWins/$newGamesPlayed;
+
+              $q = 'UPDATE stats SET gamesplayed=?, loses=?, draws=?, score=?, winrate=? WHERE username = ?';
+
+              $enter = $conn->prepare($q);
+
+              $enter->bind_param("iiiids", $newGamesPlayed, $newLoses, $newDraws, $newScore, $newWinrate,  $_SESSION['username']);
+
+              if ($enter->execute() === TRUE) {
+                echo "New record created successfully 2";
+              } else {
+                echo "Error: " . $q . "<br>" . $conn->error . "<br>";
+              }
+
+              $q = 'DELETE FROM games WHERE gameid=?';
+
+              $enter = $conn->prepare($q);
+
+              $enter->bind_param("s", $id);
+
+              if ($enter->execute() === TRUE) {
+                echo "New record deleted successfully 2";
+              } else {
+                echo "Error: " . $q . "<br>" . $conn->error . "<br>";
+              }
+
                 // if user won
                 if($win == "true"){
                   // set result for winscreen
@@ -355,6 +297,48 @@ if(!isset($_GET['row'])){
                 // being user to win screen
                 header("Location: wingame.php"); /* Redirect browser */
                 exit;
+              } else {
+                echo $place;
+
+                switch($place) {
+                  case 0:
+                    $q = 'UPDATE games SET turnnum=?, whoseturn=?, p1=? WHERE gameid = ?';
+                    break;
+                  case 1:
+                    $q = 'UPDATE games SET turnnum=?, whoseturn=?, p2=? WHERE gameid = ?';
+                    break;
+                  case 2:
+                    $q = 'UPDATE games SET turnnum=?, whoseturn=?, p3=? WHERE gameid = ?';
+                    break;
+                  case 3:
+                    $q = 'UPDATE games SET turnnum=?, whoseturn=?, p4=? WHERE gameid = ?';
+                    break;
+                  case 4:
+                    $q = 'UPDATE games SET turnnum=?, whoseturn=?, p5=? WHERE gameid = ?';
+                    break;
+                  case 5:
+                    $q = 'UPDATE games SET turnnum=?, whoseturn=?, p6=? WHERE gameid = ?';
+                    break;
+                  case 6:
+                    $q = 'UPDATE games SET turnnum=?, whoseturn=?, p7=? WHERE gameid = ?';
+                    break;
+                  case 7:
+                    $q = 'UPDATE games SET turnnum=?, whoseturn=?, p8=? WHERE gameid = ?';
+                    break;
+                  case 8:
+                    $q = 'UPDATE games SET turnnum=?, whoseturn=?, p9=? WHERE gameid=?';
+                    break;
+                }
+
+                $enter = $conn->prepare($q);
+
+                $enter->bind_param("issi", $newturnnum, $_SESSION['opponent'], $token, $id);
+
+                if ($enter->execute() === TRUE) {
+                  echo "UPDATE";
+                } else {
+                  echo "Error: " . $q . "<br>" . $conn->error . "<br>";
+                }
               }
 
             // empty opponentsession variable

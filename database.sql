@@ -9,7 +9,7 @@ CREATE TABLE games (
   user1 varchar(200),
   user2 varchar(200),
   turnnum int,
-  whoseturn int,
+  whoseturn varchar(200),
   p1 varchar(1),
   p2 varchar(1),
   p3 varchar(1),

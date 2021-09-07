@@ -1,5 +1,9 @@
 <?php
 
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 // starting session for session variables
 session_start();
 
@@ -12,6 +16,14 @@ if(!isset($_SESSION['username'])){
   header("Location: index.php"); /* Redirect browser */
   exit;
 }
+
+$db_host   = '192.168.2.12';
+$db_name   = 'fvision';
+$db_user   = 'webuser';
+$db_passwd = 'insecure_db_pw';
+
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$conn = new mysqli($db_host, $db_user , $db_passwd, $db_name);
 
 ?>
 <!DOCTYPE html>
@@ -43,12 +55,15 @@ if(!isset($_SESSION['username'])){
     <!-- opening php -->
     <?php
 
-    // open games csv file
-    $file = new SplFileObject("csv/games.csv", "r+");
-    $file->setFlags(SplFileObject::READ_CSV|SplFileObject::SKIP_EMPTY|SplFileObject::READ_AHEAD);
+    $q = "SELECT * FROM games WHERE user1=? OR user2=?";
 
-    // set row
-    $row = [];
+    $enter = $conn->prepare($q);
+
+    $enter->bind_param("ss", $_SESSION['username'], $_SESSION['username']);
+
+    $enter->execute();
+
+    $result = $enter->get_result();
 
     // set counting variable
     $i = 0;
@@ -62,30 +77,23 @@ if(!isset($_SESSION['username'])){
 
     // algoithum to find all games the user in involved in, checking both player 1 and player 2, by running through the file and makes a 2 lists of the user's turn and the opponents turn.
     // reading to the end of the file
-    while(!$file->eof()){
-      // reading each row into row variable
-      $row = $file->fgetcsv();
-      // for loop through to check boith player 1 and player 2
-      for ($j=0; $j < 2; $j++) {
-        if($row[$j] == $_SESSION['username']) {
-          // set into games
-          $games[$i] = $row;
-          // if it's not the user's turn
-          if($row[3] !== $_SESSION['username']) {
+    while($row = $result->fetch_assoc()){
+
+          if($row["whoseturn"] == $_SESSION['username']) {
             // put game into not turn list
-            $notturn[$i] = $row;
-            // set the number of row for collecting game from file
-            $nottrun[$i][13] = $i;
+            $turn[$i][0] = $row["user1"];
+            $turn[$i][1] = $row["user2"];
+            $turn[$i][2] = $row["turnnum"];
+            $turn[$i][3] = $row["gameid"];
           }
           // if it is the user's turn
           else {
-            // put game into not turn list
-            $turn[$i] = $row;
-            // set the number of row for collecting game from file
-            $turn[$i][13] = $i;
+            // put game into turn list
+            $notturn[$i][0] = $row["user1"];
+            $notturn[$i][1] = $row["user2"];
+            $notturn[$i][2] = $row["turnnum"];
+            $notturn[$i][3] = $row["gameid"];
           }
-        }
-      }
       // counting up for each row
       $i++;
   }
@@ -93,32 +101,33 @@ if(!isset($_SESSION['username'])){
       // if the user chooses a random opponent
       if(isset($_POST['random'])) {
 
-        // opening accounts csv file
-        $file = new SplFileObject("csv/accounts.csv", "r");
-        $file->setFlags(SplFileObject::READ_CSV|SplFileObject::SKIP_EMPTY|SplFileObject::READ_AHEAD);
+        $q = "SELECT username FROM users";
 
-        // set row
-        $row = [];
+        $data = $conn->query($q);
 
         // set counting variable
         $count = 0;
 
         // reading to the end of the file
-        while(!$file->eof()){
-          // reading each row into row variable
-          $row = $file->fgetcsv();
+        while($row = $data->fetch_assoc()){
           // set users as 2d array
-          $users[] = $row[0];
-          // counting number of rows
-          $count++;
+          $users[] = $row["username"];
         }
 
         // setting variables
         $success = false;
-        $ran = null;
 
         // looping until player is not the user
         while ($success == false){
+          if(sizeof($users) < 2) {
+            ?>
+            <script>
+            // alert for popup
+            alert("No other user can be found");
+            </script>
+            <?php
+            header("Location: selectgame.php");
+          }
           // fidnign random player in users
           $opp = $users[array_rand($users)];
           // getting out of loop if the opponent isnt the user
@@ -130,51 +139,32 @@ if(!isset($_SESSION['username'])){
         // setting the oppoent session variable
         $_SESSION['opponent'] = $opp;
 
-        // setting array for game
-        $newgame = null;
-        $newgame = [];
-        $newgame[0] = $_SESSION['username'];
-        $newgame[1] = $opp;
-        $newgame[2] = 0;
-        $newgame[3] = $_SESSION['username'];
-        $newgame[4] = '';
-        $newgame[5] = '';
-        $newgame[6] = '';
-        $newgame[7] = '';
-        $newgame[8] = '';
-        $newgame[9] = '';
-        $newgame[10] = '';
-        $newgame[11] = '';
-        $newgame[12] = '';
-        $newgame[13] = '';
+        $q = 'INSERT INTO games (user1, user2, turnnum, whoseturn, p1, p2, p3, p4, p5, p6, p7, p8, p9) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
 
-        // closing file
-        $file = null;
+        $enter = $conn->prepare($q);
 
-        // opening games csv file
-        $file = new SplFileObject("csv/games.csv", "r+");
-        $file->setFlags(SplFileObject::READ_CSV|SplFileObject::SKIP_EMPTY|SplFileObject::READ_AHEAD);
+        $b = '';
+        $n = 0;
 
-        // set counting variable
-        $i = -1;
-
-        // reading to the end of the file
-        while(!$file->eof()){
-          // reading through file
-          $row = $file->fgetcsv();
-          // counting how many lines in csv file
-          $i++;
+        if ($enter->bind_param("ssdssssssssss", $_SESSION['username'], $opp, $n, $_SESSION['username'], $b, $b, $b, $b, $b, $b, $b, $b, $b) === TRUE) {
+          echo "successfully";
+        } else {
+          echo "Error: " . $q . "<br>" . $conn->error . "<br>";
         }
 
-        // putting new game into csv file
-        $file->fputcsv($newgame);
+        if ($enter->execute() === TRUE) {
+          echo "New game created successfully";
+        } else {
+          echo "Error: " . $q . "<br>" . $conn->error . "<br>";
+        }
 
-        // closing file
-        $file = null;
+        $id = $conn->insert_id;
+
+        echo $id;
 
         // exit to the game with the row number to grab the game
-        header("Location: game.php?row=$i"); /* Redirect browser */
-        exit;
+        header("Location: game.php?id=$id"); /* Redirect browser */
+        exit();
       }
 
       // when username find game button pressed
@@ -185,86 +175,50 @@ if(!isset($_SESSION['username'])){
         // setting error variable
         $error = "true";
 
-        // opening accounts csv file
-        $file = new SplFileObject("csv/accounts.csv", "r");
-        $file->setFlags(SplFileObject::READ_CSV|SplFileObject::SKIP_EMPTY|SplFileObject::READ_AHEAD);
+        $q = "SELECT username FROM users";
 
-        // set row
-        $row = [];
-
-        // set counting variable
-        $count = 0;
+        $data = $conn->query($q);
 
         // reading to the end of the file
-        while(!$file->eof()){
-          // reading each row into row variable
-          $row = $file->fgetcsv();
-          // search through accounts to find if the user exists, if so, error = false
-          if($row[0] == $opp){
+        while($row = $data->fetch_assoc()){
+          // set users as 2d array
+          if($row['username'] == $opp){
             $error = "false";
           }
         }
 
-        //closing file
-        $file = null;
+        if($opp == $_SESSION['username']) {
+          $error = 'true';
+        }
 
-          // open games csv file
-          $file = new SplFileObject("csv/games.csv", "r");
-          $file->setFlags(SplFileObject::READ_CSV|SplFileObject::SKIP_EMPTY|SplFileObject::READ_AHEAD);
+        if($error == 'false') {
 
-          // if the username entered is the the same as the current user, set error true
-          if($opp == $_SESSION['username']) {
-            $error = "true";
+          $q = 'INSERT INTO games (user1, user2, turnnum, whoseturn, p1, p2, p3, p4, p5, p6, p7, p8, p9) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+
+          $enter = $conn->prepare($q);
+
+          $b = '';
+          $n = 0;
+
+          if ($enter->bind_param("ssdssssssssss", $_SESSION['username'], $opp, $n, $_SESSION['username'], $b, $b, $b, $b, $b, $b, $b, $b, $b) === TRUE) {
+            echo "successfully";
+          } else {
+            echo "Error: " . $q . "<br>" . $conn->error . "<br>";
           }
 
-          // if successful
-          if($error !== "true") {
-            // set new game variables
-            $newgame = null;
-            $newgame = [];
-            $newgame[0] = $_SESSION['username'];
-            $newgame[1] = $opp;
-            $newgame[2] = 0;
-            $newgame[3] = $_SESSION['username'];
-            $newgame[4] = '';
-            $newgame[5] = '';
-            $newgame[6] = '';
-            $newgame[7] = '';
-            $newgame[8] = '';
-            $newgame[9] = '';
-            $newgame[10] = '';
-            $newgame[11] = '';
-            $newgame[12] = '';
+          if ($enter->execute() === TRUE) {
+            echo "New game created successfully";
+          } else {
+            echo "Error: " . $q . "<br>" . $conn->error . "<br>";
+          }
+
+          $id = $conn->insert_id;
 
             // setting oppoent session avriable
             $_SESSION['opponent'] = $opp;
 
-            // closing file
-            $file = null;
-
-            // opening games csv file
-            $file = new SplFileObject("csv/games.csv", "r+");
-            $file->setFlags(SplFileObject::READ_CSV|SplFileObject::SKIP_EMPTY|SplFileObject::READ_AHEAD);
-
-            // set counting variable
-            $j = -1;
-
-            // reading to the end of the file
-            while(!$file->eof()){
-              // reading through file
-              $row = $file->fgetcsv();
-              // counting how many lines in csv file
-              $j++;
-            }
-
-            // putting new game into csv file
-            $file->fputcsv($newgame);
-
-            // closing file
-            $file = null;
-
             // exit to the game with the row number to grab the game
-            header("Location: game.php?row=$j"); /* Redirect browser */
+            header("Location: game.php?id=$id"); /* Redirect browser */
             exit;
           }
           else {
@@ -337,7 +291,7 @@ if(!isset($_SESSION['username'])){
                         <!-- then turn number thats about to happen -->
                         <td class="active"><?php echo $row[2] + 1; ?></td>
                         <!-- play link to play -->
-                        <td class="active"><a href="game.php?row=<?php echo $row[13]; ?>">Play</a></td>
+                        <td class="active"><a href="game.php?id=<?php echo $row[3] ?>">Play</a></td>
               <?php } ?>
                 </table>
               </div>

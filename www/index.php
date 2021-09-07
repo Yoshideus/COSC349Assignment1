@@ -147,7 +147,7 @@ $conn = new mysqli($db_host, $db_user , $db_passwd, $db_name);
               echo "Error: " . $q . "<br>" . $conn->error . "<br>";
             }
 
-            $q = 'INSERT INTO stats (username, gamesplayed,wins,draws,loses,score, winrate) VALUES (?, 0, 0, 0, 0, 0, 0)';
+            $q = 'INSERT INTO stats (username, gamesplayed, wins, draws, loses, score, winrate) VALUES (?, 0, 0, 0, 0, 0, 0)';
 
             $enter = $conn->prepare($q);
 
@@ -165,9 +165,9 @@ $conn = new mysqli($db_host, $db_user , $db_passwd, $db_name);
             $conn->close();
 
             // change to menu
-            //header("Location: menu.php"); /* Redirect browser */
+            header("Location: menu.php"); /* Redirect browser */
             // exit page
-            //exit;
+            exit;
         }
         else {
           // popup to tell user they failed

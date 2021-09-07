@@ -1,5 +1,9 @@
 <?php
 
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 // starting session for session variables
 session_start();
 
@@ -8,6 +12,13 @@ if(!isset($_SESSION['username'])){
   header("Location: index.php"); /* Redirect browser */
   exit;
 }
+
+$db_host   = '192.168.2.12';
+$db_name   = 'fvision';
+$db_user   = 'webuser';
+$db_passwd = 'insecure_db_pw';
+
+$conn = new mysqli($db_host, $db_user , $db_passwd, $db_name);
 
 ?>
 <!DOCTYPE html>
@@ -60,25 +71,27 @@ if(!isset($_SESSION['username'])){
       exit;
     }
 
-    // open stats csv file
-    $file = new SplFileObject("csv/stats.csv");
-    $file->setFlags(SplFileObject::READ_CSV|SplFileObject::SKIP_EMPTY|SplFileObject::READ_AHEAD);
+    $q = "SELECT * FROM stats";
 
-    // set row
-    $row = [];
+    $data = $conn->query($q);
 
-    // set count variable to 0
+    // set count variable to 0 and scores
     $i = 0;
 
     // reading to the end of the file
-    while(!$file->eof()){
-      // reading each row into row variable
-      $row = $file->fgetcsv();
+    while($row = $data->fetch_assoc()){
       // setting row into array, collectivly putting file in 2d array
-      $score[$i] = $row;
+      $score[$i][0] = $row["username"];
+      $score[$i][1] = $row["gamesplayed"];
+      $score[$i][2] = $row["wins"];
+      $score[$i][3] = $row["draws"];
+      $score[$i][4] = $row["loses"];
+      $score[$i][5] = $row["score"];
+      $score[$i][6] = $row["winrate"];
+
       // count variable counting up for each row
       $i++;
-          }
+    }
       // setting max to count
       $max = $i;
      ?>

@@ -9,6 +9,13 @@ if(!isset($_SESSION['username'])){
   exit;
 }
 
+$db_host   = '192.168.2.12';
+$db_name   = 'fvision';
+$db_user   = 'webuser';
+$db_passwd = 'insecure_db_pw';
+
+$conn = new mysqli($db_host, $db_user , $db_passwd, $db_name);
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -60,30 +67,28 @@ if(!isset($_SESSION['username'])){
       exit;
     }
 
-    // open stats csv file
-    $file = new SplFileObject("csv/stats.csv");
-    $file->setFlags(SplFileObject::READ_CSV|SplFileObject::SKIP_EMPTY|SplFileObject::READ_AHEAD);
+    $q = "SELECT * FROM stats WHERE username=?";
 
-    // set row
-    $row = [];
+    $enter = $conn->prepare($q);
 
-    // reading to the end of the file
-    while(!$file->eof()){
-      // reading each row into row variable
-      $row = $file->fgetcsv();
-      // selecting the user's file
-      if ($row[0] == $_SESSION['username']) {
-        // setting all variables from file
-        $nogames = $row[1];
-        $wins = $row[2];
-        $draws = $row[3];
-        $loses = $row[4];
-        $score = $row[5];
-        $winrate = $row[6] * 100;
-        // once found break out
-        break;
-      }
+    $enter->bind_param("s", $_SESSION['username']);
+
+    if ($enter->execute() === TRUE) {
+      echo "success";
+    } else {
+      echo "Error: " . $q . "<br>" . $conn->error . "<br>";
     }
+
+    $result = $enter->get_result();
+
+    $row = $result->fetch_assoc();
+
+    $nogames = $row["gamesplayed"];
+    $wins = $row["wins"];
+    $draws = $row["draws"];
+    $loses = $row["loses"];
+    $score = $row["score"];
+    $winrate = $row["winrate"] * 100;
      ?>
   </head>
   <body>
