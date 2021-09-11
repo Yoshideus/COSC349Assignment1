@@ -47,4 +47,16 @@ Vagrant.configure("2") do |config|
       service mysql restart
     SHELL
   end
+
+  config.vm.define "reportserver" do |reportserver|
+    reportserver.vm.hostname = "reportserver"
+    reportserver.vm.network "private_network", ip: "192.168.2.13"
+
+    reportserver.vm.provision "shell", inline: <<-SHELL
+      apt-get update
+
+      apt-get install python-dev python-pip -q -y
+
+    SHELL
+  end
 end
