@@ -1,3 +1,5 @@
+CREATE DATABASE tictactoe;
+
 CREATE TABLE users (
   username varchar(200) NOT NULL,
   password char(60) NOT NULL,

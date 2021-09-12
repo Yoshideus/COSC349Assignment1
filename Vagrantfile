@@ -56,6 +56,7 @@ Vagrant.configure("2") do |config|
       apt-get update
 
       apt-get install python-dev python-pip -q -y
+      python -m pip install mysql-connector
 
     SHELL
   end
