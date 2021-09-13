@@ -44,5 +44,5 @@ INSERT INTO stats (username, gamesplayed, wins, draws, loses, score, winrate)
   VALUES ("test", 80, 40, 30, 10, 150, 0.50);
 INSERT INTO stats (username, gamesplayed, wins, draws, loses, score, winrate)
   VALUES ("test1", 72, 40, 30, 2, 150, 0.556);
-INSERT INTO stats (username, password)
+INSERT INTO stats (username, gamesplayed, wins, draws, loses, score, winrate)
   VALUES ("test2", 19, 3, 9, 7, 18, 0.158);
