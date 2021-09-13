@@ -13,8 +13,8 @@ def userreport(user):
 
     dbcursor.execute('SELECT username FROM users')
 
-    result = mycursor.fetchone()
-    if len(result) == 0:
+    result = dbcursor.fetchone()
+    if len(result) < 2:
         print("User does not exist.")
     else:
 
