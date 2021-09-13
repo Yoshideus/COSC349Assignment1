@@ -1,8 +1,6 @@
-CREATE DATABASE tictactoe;
-
 CREATE TABLE users (
   username varchar(200) NOT NULL,
-  password char(60) NOT NULL,
+  password varchar(60) NOT NULL,
   PRIMARY KEY (username)
 );
 
@@ -37,3 +35,14 @@ CREATE TABLE stats (
   PRIMARY KEY (username),
   FOREIGN KEY (username) REFERENCES users(username)
 );
+
+INSERT INTO users (username, password) VALUES ("test", "$2y$10$NGS0xQent7N4Up.lYx3Ziuki6MHgmJeSgNRCvC3wJnPHMmS0sDWCK");
+INSERT INTO users (username, password) VALUES ("test1", "$2y$10$msnWTFSUEcb.BU.vXZoYtuksgRaPT60lnYVrHoydCL0pEWH1YdQYC");
+INSERT INTO users (username, password) VALUES ("test2", "$2y$10$16DldbKweqtHbQTQ0LB7ReTmm5MUJbr8LPI01n8m0Fa2GoXsQd8Mq");
+
+INSERT INTO stats (username, gamesplayed, wins, draws, loses, score, winrate)
+  VALUES ("test", 80, 40, 30, 10, 150, 0.50);
+INSERT INTO stats (username, gamesplayed, wins, draws, loses, score, winrate)
+  VALUES ("test1", 72, 40, 30, 2, 150, 0.556);
+INSERT INTO stats (username, password)
+  VALUES ("test2", 19, 3, 9, 7, 18, 0.158);

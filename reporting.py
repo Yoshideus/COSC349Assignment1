@@ -4,12 +4,10 @@ from array import *
 def userreport(user):
     db = mysql.connector.connect(
       host="192.168.2.12",
-      database="tictactoe",
+      database="fvision",
       user="webuser",
       password="insecure_db_pw"
     )
-
-    print("Connected to:", db.get_server_info())
 
     dbcursor = db.cursor()
 
@@ -122,10 +120,6 @@ print("  - an empty input to exit application")
 
 while(True):
     val = str(input("Please enter a number: "))
-
-    print(type(val))
-
-    print(val)
 
     if val == "1":
         username = str(input("Please input the username of the user you'd like a report on: "))

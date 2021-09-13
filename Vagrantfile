@@ -44,6 +44,8 @@ Vagrant.configure("2") do |config|
       cat /vagrant/database.sql | mysql -u webuser fvision
 
       sed -i'' -e '/bind-address/s/127.0.0.1/0.0.0.0/' /etc/mysql/mysql.conf.d/mysqld.cnf
+      sed -i'' -e '/bind-address/s/192.168.2.13/0.0.0.0/' /etc/mysql/mysql.conf.d/mysqld.cnf
+
       service mysql restart
     SHELL
   end
